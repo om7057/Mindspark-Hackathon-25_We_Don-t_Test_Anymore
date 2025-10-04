@@ -3,6 +3,7 @@ import type { FrontendSimulationState } from "../types";
 import { COLOR_CODES } from "../types";
 import { BigCarIcon } from "./BigCarIcon";
 import { ContextMenu } from "./ContextMenu";
+import { FaInbox, FaBolt, FaFire, FaWarehouse, FaChartLine, FaPlay, FaStop } from 'react-icons/fa';
 
 interface EnhancedSimulationDisplayProps {
     state: FrontendSimulationState;
@@ -117,57 +118,54 @@ export function EnhancedSimulationDisplay({
 
     return (
         <div className="space-y-6" onClick={closeContextMenu}>
-            {/* Oven Status Section */}
-
             {/* Job Queue Section */}
-            <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-xl font-bold text-gray-800 mb-4">
-                    Job Queue
+            <div className="bg-slate-800 rounded-xl shadow-xl p-6 border border-slate-700">
+                <h2 className="text-xl font-bold text-slate-100 mb-4 flex items-center gap-2">
+                    <FaInbox className="text-blue-400" /> Job Queue
                 </h2>
 
                 {/* Current Job */}
                 {currentJob && (
                     <div className="mb-4">
-                        <h3 className="text-sm font-semibold text-gray-600 mb-2">
-                            Current Job Processing
+                        <h3 className="text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wide">
+                            Current Processing
                         </h3>
-                        <div className="bg-blue-50 border-2 border-blue-500 rounded-lg p-4 flex items-center gap-4">
+                        <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 flex items-center gap-4">
                             <BigCarIcon
                                 color={currentJob.color as any}
                                 size="xl"
                                 animate
                             />
                             <div className="flex-1">
-                                <div className="text-sm text-gray-600">
-                                    <span className="font-semibold">
+                                <div className="text-sm text-slate-300 mb-1">
+                                    <span className="font-semibold text-slate-400">
                                         Origin:
                                     </span>{" "}
-                                    {currentJob.origin}
+                                    <span className="text-slate-100">{currentJob.origin}</span>
                                 </div>
-                                <div className="text-sm text-gray-600">
-                                    <span className="font-semibold">
+                                <div className="text-sm text-slate-300">
+                                    <span className="font-semibold text-slate-400">
                                         Color:
                                     </span>{" "}
-                                    {currentJob.color}
+                                    <span className="text-slate-100">{currentJob.color}</span>
                                 </div>
                                 {currentJob.assigned_buffer && (
-                                    <div className="text-sm text-green-700 font-semibold">
-                                        → Assigned to{" "}
-                                        {currentJob.assigned_buffer}
+                                    <div className="text-sm text-green-400 font-semibold mt-1">
+                                        → {currentJob.assigned_buffer}
                                     </div>
                                 )}
                             </div>
-                            <div className="animate-pulse text-2xl">⚡</div>
+                            <FaBolt className="text-yellow-400 text-2xl animate-pulse" />
                         </div>
                     </div>
                 )}
 
-                {/* Initial Sequence (Pending Jobs) */}
+                {/* Pending Jobs */}
                 <div>
-                    <h3 className="text-sm font-semibold text-gray-600 mb-2">
-                        Pending Jobs ({pendingJobs.length})
+                    <h3 className="text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wide">
+                        Pending ({pendingJobs.length})
                     </h3>
-                    <div className="bg-gray-50 rounded-lg p-4 max-h-32 overflow-y-auto">
+                    <div className="bg-slate-700/30 rounded-lg p-3 max-h-32 overflow-y-auto">
                         <div className="flex flex-wrap gap-2">
                             {pendingJobs.slice(0, 50).map((job) => (
                                 <BigCarIcon
@@ -177,7 +175,7 @@ export function EnhancedSimulationDisplay({
                                 />
                             ))}
                             {pendingJobs.length > 50 && (
-                                <div className="text-xs text-gray-500 self-center">
+                                <div className="text-xs text-slate-400 self-center">
                                     +{pendingJobs.length - 50} more
                                 </div>
                             )}
@@ -185,81 +183,83 @@ export function EnhancedSimulationDisplay({
                     </div>
                 </div>
             </div>
-            <div className="grid grid-cols-2 gap-6">
+            
+            {/* Ovens */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Oven O1 */}
                 <div
-                    className={`bg-white rounded-lg shadow p-6 cursor-context-menu border-2 ${
-                        ovenStates.O1 ? "border-orange-500" : "border-gray-400"
+                    className={`bg-slate-800 rounded-xl shadow-xl p-5 cursor-context-menu border-2 transition-all ${
+                        ovenStates.O1 ? "border-orange-500/50" : "border-slate-700"
                     }`}
                     onContextMenu={(e) => handleRightClick(e, "oven", "O1")}
-                    title="Right-click to toggle oven"
+                    title="O1 is always active"
                 >
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <div
-                                className={`w-4 h-4 rounded-full ${
+                                className={`w-3 h-3 rounded-full ${
                                     ovenStates.O1
                                         ? "bg-green-500 animate-pulse"
                                         : "bg-red-500"
                                 }`}
                             />
-                            <h2 className="text-xl font-bold text-orange-700">
-                                🔥 Oven O1
+                            <h2 className="text-lg font-bold text-orange-400 flex items-center gap-2">
+                                <FaFire /> Oven O1
                             </h2>
                         </div>
                         <span
-                            className={`text-xs px-3 py-1 rounded font-semibold ${
+                            className={`text-xs px-3 py-1 rounded-full font-semibold ${
                                 ovenStates.O1
-                                    ? "bg-green-100 text-green-700"
-                                    : "bg-red-100 text-red-700"
+                                    ? "bg-green-500/20 text-green-400"
+                                    : "bg-red-500/20 text-red-400"
                             }`}
                         >
-                            {ovenStates.O1 ? "🟢 ACTIVE" : "🔴 INACTIVE"}
+                            {ovenStates.O1 ? "ACTIVE" : "OFF"}
                         </span>
                     </div>
                 </div>
 
                 {/* Oven O2 */}
                 <div
-                    className={`bg-white rounded-lg shadow p-6 cursor-context-menu border-2 ${
-                        ovenStates.O2 ? "border-blue-500" : "border-gray-400"
+                    className={`bg-slate-800 rounded-xl shadow-xl p-5 cursor-context-menu border-2 transition-all ${
+                        ovenStates.O2 ? "border-blue-500/50" : "border-slate-700"
                     }`}
                     onContextMenu={(e) => handleRightClick(e, "oven", "O2")}
-                    title="Right-click to toggle oven"
+                    title="Right-click to toggle"
                 >
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <div
-                                className={`w-4 h-4 rounded-full ${
+                                className={`w-3 h-3 rounded-full ${
                                     ovenStates.O2
                                         ? "bg-green-500 animate-pulse"
                                         : "bg-red-500"
                                 }`}
                             />
-                            <h2 className="text-xl font-bold text-blue-700">
-                                🔥 Oven O2
+                            <h2 className="text-lg font-bold text-blue-400 flex items-center gap-2">
+                                <FaFire /> Oven O2
                             </h2>
                         </div>
                         <span
-                            className={`text-xs px-3 py-1 rounded font-semibold ${
+                            className={`text-xs px-3 py-1 rounded-full font-semibold ${
                                 ovenStates.O2
-                                    ? "bg-green-100 text-green-700"
-                                    : "bg-red-100 text-red-700"
+                                    ? "bg-green-500/20 text-green-400"
+                                    : "bg-red-500/20 text-red-400"
                             }`}
                         >
-                            {ovenStates.O2 ? "🟢 ACTIVE" : "🔴 INACTIVE"}
+                            {ovenStates.O2 ? "ACTIVE" : "OFF"}
                         </span>
                     </div>
                 </div>
             </div>
-            {/* Buffer Lines - Divided by Oven */}
-            <div className="grid grid-cols-2 gap-6">
+            {/* Buffer Lines */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* O1 Buffers */}
-                <div className="bg-white rounded-lg shadow p-6">
-                    <h2 className="text-xl font-bold text-orange-700 mb-4">
-                        🏭 Oven O1 Buffers
+                <div className="bg-slate-800 rounded-xl shadow-xl p-5 border border-slate-700">
+                    <h2 className="text-lg font-bold text-orange-400 mb-4 flex items-center gap-2">
+                        <FaWarehouse /> O1 Buffers
                     </h2>
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                         {o1Buffers.map((bufferId) => {
                             const buffer = buffers[bufferId];
                             if (!buffer) return null;
@@ -271,37 +271,37 @@ export function EnhancedSimulationDisplay({
                             return (
                                 <div
                                     key={bufferId}
-                                    className={`border ${
+                                    className={`border rounded-lg p-3 cursor-context-menu transition-all ${
                                         isActive
-                                            ? "border-orange-200"
-                                            : "border-gray-400 bg-gray-100"
-                                    } rounded-lg p-3 cursor-context-menu`}
+                                            ? "border-orange-500/30 bg-orange-500/5"
+                                            : "border-slate-600 bg-slate-700/30"
+                                    }`}
                                     onContextMenu={(e) =>
                                         handleRightClick(e, "buffer", bufferId)
                                     }
-                                    title="Right-click to toggle buffer"
+                                    title="Right-click to toggle"
                                 >
                                     <div className="flex justify-between items-center mb-2">
                                         <div className="flex items-center gap-2">
-                                            <h4 className="font-bold text-gray-800">
+                                            <h4 className="font-bold text-slate-100">
                                                 {bufferId}
                                             </h4>
                                             <span
-                                                className={`text-xs px-2 py-0.5 rounded ${
+                                                className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
                                                     isActive
-                                                        ? "bg-green-100 text-green-700"
-                                                        : "bg-red-100 text-red-700"
+                                                        ? "bg-green-500/20 text-green-400"
+                                                        : "bg-red-500/20 text-red-400"
                                                 }`}
                                             >
-                                                {isActive ? "🟢 ON" : "🔴 OFF"}
+                                                {isActive ? "ON" : "OFF"}
                                             </span>
                                         </div>
                                         <span
                                             className={`text-sm font-semibold ${
                                                 buffer.occupancy >=
                                                 buffer.capacity
-                                                    ? "text-red-600"
-                                                    : "text-green-600"
+                                                    ? "text-red-400"
+                                                    : "text-green-400"
                                             }`}
                                         >
                                             {buffer.occupancy}/{buffer.capacity}
@@ -309,7 +309,7 @@ export function EnhancedSimulationDisplay({
                                     </div>
 
                                     {/* Progress Bar */}
-                                    <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
+                                    <div className="w-full bg-slate-700 rounded-full h-2 mb-2">
                                         <div
                                             className={`h-2 rounded-full transition-all ${
                                                 buffer.occupancy >=
@@ -331,8 +331,8 @@ export function EnhancedSimulationDisplay({
                                         />
                                     </div>
 
-                                    {/* Jobs in Queue */}
-                                    <div className="flex flex-wrap gap-1 min-h-[40px] bg-gray-50 rounded p-2">
+                                    {/* Jobs */}
+                                    <div className="flex flex-wrap gap-1 min-h-[32px] bg-slate-900/30 rounded p-2">
                                         {buffer.queue.map((job) => (
                                             <BigCarIcon
                                                 key={job.id}
@@ -348,11 +348,11 @@ export function EnhancedSimulationDisplay({
                 </div>
 
                 {/* O2 Buffers */}
-                <div className="bg-white rounded-lg shadow p-6">
-                    <h2 className="text-xl font-bold text-blue-700 mb-4">
-                        🏭 Oven O2 Buffers
+                <div className="bg-slate-800 rounded-xl shadow-xl p-5 border border-slate-700">
+                    <h2 className="text-lg font-bold text-blue-400 mb-4 flex items-center gap-2">
+                        <FaWarehouse /> O2 Buffers
                     </h2>
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                         {o2Buffers.map((bufferId) => {
                             const buffer = buffers[bufferId];
                             if (!buffer) return null;
@@ -364,37 +364,37 @@ export function EnhancedSimulationDisplay({
                             return (
                                 <div
                                     key={bufferId}
-                                    className={`border ${
+                                    className={`border rounded-lg p-3 cursor-context-menu transition-all ${
                                         isActive
-                                            ? "border-blue-200"
-                                            : "border-gray-400 bg-gray-100"
-                                    } rounded-lg p-3 cursor-context-menu`}
+                                            ? "border-blue-500/30 bg-blue-500/5"
+                                            : "border-slate-600 bg-slate-700/30"
+                                    }`}
                                     onContextMenu={(e) =>
                                         handleRightClick(e, "buffer", bufferId)
                                     }
-                                    title="Right-click to toggle buffer"
+                                    title="Right-click to toggle"
                                 >
                                     <div className="flex justify-between items-center mb-2">
                                         <div className="flex items-center gap-2">
-                                            <h4 className="font-bold text-gray-800">
+                                            <h4 className="font-bold text-slate-100">
                                                 {bufferId}
                                             </h4>
                                             <span
-                                                className={`text-xs px-2 py-0.5 rounded ${
+                                                className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
                                                     isActive
-                                                        ? "bg-green-100 text-green-700"
-                                                        : "bg-red-100 text-red-700"
+                                                        ? "bg-green-500/20 text-green-400"
+                                                        : "bg-red-500/20 text-red-400"
                                                 }`}
                                             >
-                                                {isActive ? "🟢 ON" : "🔴 OFF"}
+                                                {isActive ? "ON" : "OFF"}
                                             </span>
                                         </div>
                                         <span
                                             className={`text-sm font-semibold ${
                                                 buffer.occupancy >=
                                                 buffer.capacity
-                                                    ? "text-red-600"
-                                                    : "text-green-600"
+                                                    ? "text-red-400"
+                                                    : "text-green-400"
                                             }`}
                                         >
                                             {buffer.occupancy}/{buffer.capacity}
@@ -402,7 +402,7 @@ export function EnhancedSimulationDisplay({
                                     </div>
 
                                     {/* Progress Bar */}
-                                    <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
+                                    <div className="w-full bg-slate-700 rounded-full h-2 mb-2">
                                         <div
                                             className={`h-2 rounded-full transition-all ${
                                                 buffer.occupancy >=
@@ -424,8 +424,8 @@ export function EnhancedSimulationDisplay({
                                         />
                                     </div>
 
-                                    {/* Jobs in Queue */}
-                                    <div className="flex flex-wrap gap-1 min-h-[40px] bg-gray-50 rounded p-2">
+                                    {/* Jobs */}
+                                    <div className="flex flex-wrap gap-1 min-h-[32px] bg-slate-900/30 rounded p-2">
                                         {buffer.queue.map((job) => (
                                             <BigCarIcon
                                                 key={job.id}
@@ -442,46 +442,46 @@ export function EnhancedSimulationDisplay({
             </div>
 
             {/* Final Sequence & Statistics */}
-            <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-xl font-bold text-gray-800 mb-4">
-                    Final Sequence & Statistics
+            <div className="bg-slate-800 border border-slate-700 rounded-lg p-6">
+                <h2 className="text-sm font-semibold text-slate-100 uppercase tracking-wide mb-4 flex items-center gap-2">
+                    <FaChartLine className="text-purple-400" /> Statistics & Final Sequence
                 </h2>
 
                 {/* Statistics */}
-                <div className="grid grid-cols-4 gap-4 mb-4">
-                    <div className="bg-purple-50 rounded-lg p-4">
-                        <div className="text-sm text-gray-600">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-4">
+                        <div className="text-sm text-slate-400">
                             Total Processed
                         </div>
-                        <div className="text-3xl font-bold text-purple-700">
+                        <div className="text-3xl font-bold text-purple-400">
                             {finalSequence.length}
                         </div>
                     </div>
-                    <div className="bg-yellow-50 rounded-lg p-4">
-                        <div className="text-sm text-gray-600">
+                    <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
+                        <div className="text-sm text-slate-400">
                             Initial Changeovers
                         </div>
-                        <div className="text-3xl font-bold text-yellow-700">
+                        <div className="text-3xl font-bold text-yellow-400">
                             {calculateInitialChangeovers()}
                         </div>
-                        <div className="text-xs text-gray-500 mt-1">
+                        <div className="text-xs text-slate-500 mt-1">
                             Original sequence
                         </div>
                     </div>
-                    <div className="bg-green-50 rounded-lg p-4">
-                        <div className="text-sm text-gray-600">
+                    <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
+                        <div className="text-sm text-slate-400">
                             Final Changeovers
                         </div>
-                        <div className="text-3xl font-bold text-green-700">
+                        <div className="text-3xl font-bold text-green-400">
                             {calculateFinalChangeovers()}
                         </div>
-                        <div className="text-xs text-gray-500 mt-1">
+                        <div className="text-xs text-slate-500 mt-1">
                             After optimization
                         </div>
                     </div>
-                    <div className="bg-blue-50 rounded-lg p-4">
-                        <div className="text-sm text-gray-600">Improvement</div>
-                        <div className="text-3xl font-bold text-blue-700">
+                    <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                        <div className="text-sm text-slate-400">Improvement</div>
+                        <div className="text-3xl font-bold text-blue-400">
                             {calculateInitialChangeovers() > 0
                                 ? (
                                       (1 -
@@ -492,7 +492,7 @@ export function EnhancedSimulationDisplay({
                                 : "0"}
                             %
                         </div>
-                        <div className="text-xs text-gray-500 mt-1">
+                        <div className="text-xs text-slate-500 mt-1">
                             Reduction
                         </div>
                     </div>
@@ -501,11 +501,11 @@ export function EnhancedSimulationDisplay({
                 {/* Final Sequence Display */}
                 {finalSequence.length > 0 && (
                     <div>
-                        <h3 className="text-sm font-semibold text-gray-600 mb-2">
+                        <h3 className="text-sm font-semibold text-slate-300 mb-2">
                             Final Sequence (Last{" "}
                             {Math.min(finalSequence.length, 100)} jobs)
                         </h3>
-                        <div className="bg-gray-50 rounded-lg p-4 max-h-48 overflow-y-auto">
+                        <div className="bg-slate-900/30 border border-slate-700 rounded-lg p-4 max-h-48 overflow-y-auto">
                             <div className="flex flex-wrap gap-1">
                                 {finalSequence.slice(-100).map((color, idx) => (
                                     <div
@@ -528,7 +528,7 @@ export function EnhancedSimulationDisplay({
                 )}
             </div>
 
-            {/* Context Menu */}
+                        {/* Context Menu */}
             {contextMenu.show && (
                 <ContextMenu
                     x={contextMenu.x}
@@ -541,34 +541,34 @@ export function EnhancedSimulationDisplay({
                                     ? buffers[contextMenu.id]
                                           ?.input_available &&
                                       buffers[contextMenu.id]?.output_available
-                                        ? "🛑 Close Buffer (Input & Output)"
-                                        : "▶️ Open Buffer (Input & Output)"
+                                        ? "Close Buffer (Input & Output)"
+                                        : "Open Buffer (Input & Output)"
                                     : contextMenu.type === "oven"
                                     ? state.plantState?.oven_states?.[
                                           contextMenu.id
                                       ]
-                                        ? "🛑 Shut Down Oven"
-                                        : "▶️ Start Oven"
+                                        ? "Shut Down Oven"
+                                        : "Start Oven"
                                     : state.plantState?.main_conveyor_busy
-                                    ? "🛑 Stop Conveyor"
-                                    : "▶️ Start Conveyor",
+                                    ? "Stop Conveyor"
+                                    : "Start Conveyor",
                             onClick: () => handleContextMenuAction("toggle"),
                             icon:
                                 contextMenu.type === "buffer"
                                     ? buffers[contextMenu.id]
                                           ?.input_available &&
                                       buffers[contextMenu.id]?.output_available
-                                        ? "🛑"
-                                        : "▶️"
+                                        ? <FaStop className="text-red-400" />
+                                        : <FaPlay className="text-green-400" />
                                     : contextMenu.type === "oven"
                                     ? state.plantState?.oven_states?.[
                                           contextMenu.id
                                       ]
-                                        ? "🛑"
-                                        : "▶️"
+                                        ? <FaStop className="text-red-400" />
+                                        : <FaPlay className="text-green-400" />
                                     : state.plantState?.main_conveyor_busy
-                                    ? "🛑"
-                                    : "▶️",
+                                    ? <FaStop className="text-red-400" />
+                                    : <FaPlay className="text-green-400" />,
                         },
                     ]}
                 />

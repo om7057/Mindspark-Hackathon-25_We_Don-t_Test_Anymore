@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import type { ReactNode } from 'react';
 
 interface ContextMenuProps {
   x: number;
@@ -7,7 +8,7 @@ interface ContextMenuProps {
   actions: Array<{
     label: string;
     onClick: () => void;
-    icon?: string;
+    icon?: ReactNode;
     className?: string;
   }>;
 }
@@ -15,20 +16,20 @@ interface ContextMenuProps {
 export const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, onClose, actions }) => {
   return (
     <div
-      className="fixed bg-white border border-gray-300 rounded-lg shadow-lg py-2 z-50"
+      className="fixed bg-slate-800 border border-slate-700 rounded-lg shadow-lg shadow-black/50 py-2 z-50"
       style={{ left: x, top: y }}
       onMouseLeave={onClose}
     >
       {actions.map((action, index) => (
         <button
           key={index}
-          className={`w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center gap-2 ${action.className || ''}`}
+          className={`w-full px-4 py-2 text-left text-slate-200 hover:bg-slate-700 flex items-center gap-2 transition-colors ${action.className || ''}`}
           onClick={() => {
             action.onClick();
             onClose();
           }}
         >
-          {action.icon && <span>{action.icon}</span>}
+          {action.icon && <span className="flex-shrink-0">{action.icon}</span>}
           {action.label}
         </button>
       ))}

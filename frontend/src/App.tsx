@@ -1,5 +1,6 @@
 import { useControlledSimulation } from './hooks/useControlledSimulation';
 import { GenerationControls, SimulationControls, EnhancedSimulationDisplay } from './components';
+import { FaCarSide } from 'react-icons/fa6';
 
 function App() {
   const {
@@ -18,11 +19,17 @@ function App() {
   } = useControlledSimulation();
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4 font-['Inter']">
+    <div className="min-h-screen bg-slate-900 p-4 md:p-6 font-['Inter']">
       <div className="max-w-7xl mx-auto space-y-6">
-        <h1 className="text-3xl font-bold text-gray-800 text-center">
-          🚗 Smart Vehicle Sequencing - Paint Shop Simulation
-        </h1>
+        <div className="text-center mb-8">
+          <div className="flex items-center justify-center gap-4 mb-2">
+            <FaCarSide className="text-4xl md:text-5xl text-blue-400" />
+            <h1 className="text-4xl md:text-5xl font-bold text-slate-100">
+              Smart Vehicle Sequencing
+            </h1>
+          </div>
+          <p className="text-slate-400">Paint Shop Optimization System</p>
+        </div>
         
         <GenerationControls
           onGenerate={generateJobs}
