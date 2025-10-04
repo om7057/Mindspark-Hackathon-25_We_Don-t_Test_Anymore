@@ -25,6 +25,9 @@ app.add_middleware(
 PLANT = default_plant()
 CONTROLLER = OnlineController(PLANT)
 
+@app.get("/")
+def get_check():
+    return {"message":"Sequencing Backend is running."}
 
 @app.get("/state")
 def get_state():
