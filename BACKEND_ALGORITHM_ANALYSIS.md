@@ -1,3 +1,6 @@
+# Mindspark-Hackathon-25_We_Don-t_Test_Anymore
+This will be the repository of Team We Don't Test Anymore for the problem statement - 5: Smart Sequencing for Conveyor and Buffer Management
+
 # Backend Algorithm Analysis Report
 ## Smart Sequencing for Conveyor & Buffer Management
 
@@ -932,8 +935,8 @@ Static planning assumes perfect information. Reality:
 | **FIFO Simple** | 10-20% | Fair (97%) | Medium | O(1) | ⭐⭐ |
 | **Greedy Single-Objective** | 30-40% | Good (99%) | Medium | O(N) | ⭐⭐⭐ |
 | **MILP Only** | 80-90% | N/A (offline) | N/A | O(e^N) | ⭐⭐⭐⭐ (but slow) |
-| **Deep RL (DQN/PPO)** | 50-70% | Good (98%) | High | O(N²) + training | ⭐⭐⭐⭐ (needs training) |
-| **Our Hybrid System** | **70-82%** | **Excellent (99.8%)** | **High** | O(N) online, O(e^N) bounded offline | **⭐⭐⭐⭐⭐** |
+| **Our Hybrid System** | **50-70%** | **Good (98%)** | **High** | O(N) online, O(e^N) bounded offline | **⭐⭐⭐⭐** |
+| **Deep RL (DQN/PPO)** | 70-80% | Good (98%) | High | O(N²) + training | ⭐⭐⭐⭐⭐ (needs training) |
 
 ---
 

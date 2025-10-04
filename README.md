@@ -935,8 +935,8 @@ Static planning assumes perfect information. Reality:
 | **FIFO Simple** | 10-20% | Fair (97%) | Medium | O(1) | ⭐⭐ |
 | **Greedy Single-Objective** | 30-40% | Good (99%) | Medium | O(N) | ⭐⭐⭐ |
 | **MILP Only** | 80-90% | N/A (offline) | N/A | O(e^N) | ⭐⭐⭐⭐ (but slow) |
-| **Deep RL (DQN/PPO)** | 50-70% | Good (98%) | High | O(N²) + training | ⭐⭐⭐⭐ (needs training) |
-| **Our Hybrid System** | **70-82%** | **Excellent (99.8%)** | **High** | O(N) online, O(e^N) bounded offline | **⭐⭐⭐⭐⭐** |
+| **Our Hybrid System** | **50-70%** | **Good (98%)** | **High** | O(N) online, O(e^N) bounded offline | **⭐⭐⭐⭐** |
+| **Deep RL (DQN/PPO)** | 70-80% | Good (98%) | High | O(N²) + training | ⭐⭐⭐⭐⭐ (needs training) |
 
 ---
 
