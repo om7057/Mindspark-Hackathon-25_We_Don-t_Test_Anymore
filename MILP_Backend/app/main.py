@@ -16,8 +16,8 @@ app = FastAPI(title="Smart Sequencing Backend")
 # Add CORS middleware to allow frontend communication
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],  # Frontend URLs
-    allow_credentials=True,
+    allow_origins=["*"],  # Allow all origins (must be list, not string)
+    allow_credentials=False,  # Must be False when using allow_origins=["*"]
     allow_methods=["*"],  # Allow all methods (GET, POST, etc.)
     allow_headers=["*"],  # Allow all headers
 )
