@@ -13,7 +13,7 @@ def milp_short_horizon(jobs: List[Job], buffers: Dict[str, BufferLine], horizon_
     This is a simplified benchmark: aggregate-level to compute sequence minimizing changeovers.
     """
     # Prepare candidate items: for each buffer, take up to K items from head preserving order
-    K = 10
+    K = 30  # Increased from 10 to see more jobs per buffer
     items = []  # (buffer_id, color)
     from copy import deepcopy
     for b in buffers.values():
@@ -136,7 +136,7 @@ def milp_short_horizon(jobs: List[Job], buffers: Dict[str, BufferLine], horizon_
     model.Minimize(sum(obj_terms))
 
     solver = cp_model.CpSolver()
-    solver.parameters.max_time_in_seconds = 10.0
+    solver.parameters.max_time_in_seconds = 20.0  # Increased from 10.0
     solver.parameters.num_search_workers = 8
     res = solver.Solve(model)
     if res == cp_model.OPTIMAL or res == cp_model.FEASIBLE:

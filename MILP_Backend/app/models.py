@@ -77,6 +77,6 @@ class BufferLine:
 @dataclass
 class PlantState:
     buffers: dict = field(default_factory=dict)  # id -> BufferLine
-    oven_states: dict = field(default_factory=lambda: {"O1": True, "O2": True})
+    oven_states: dict = field(default_factory=lambda: {"O1": True, "O2": True})  # O1 is always True
     main_conveyor_busy: bool = False
     main_conveyor_history: List[dict] = field(default_factory=list)  # logs

@@ -1,327 +1,542 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import type { SimulationState, Vehicle, Color } from '../types';
-import { COLOR_PERCENTAGES } from '../types';
+import { useState, useCallback, useEffect, useRef } from "react";
+import type { Color, FrontendSimulationState, Job } from "../types";
+import { COLOR_PERCENTAGES } from "../types";
+import { v4 as uuidv4 } from "uuid";
+import {
+    getState,
+    addArrival,
+    triggerPick,
+    reset,
+    enterDrainMode,
+    exitDrainMode,
+    getDrainStatus,
+    toggleOven,
+    toggleBuffer,
+    setBufferState,
+    toggleMainConveyor,
+} from "../services/api";
 
-// Generate vehicles based on count and percentage distribution
-function generateVehiclesByCount(count: number): Vehicle[] {
-  const vehicles: Vehicle[] = [];
-  const colors = Object.keys(COLOR_PERCENTAGES) as Color[];
-  
-  // Calculate how many of each color we need
-  const colorCounts: Record<Color, number> = {} as Record<Color, number>;
-  colors.forEach(color => {
-    colorCounts[color] = Math.round((COLOR_PERCENTAGES[color] / 100) * count);
-  });
-  
-  // Adjust for rounding errors to ensure exact count
-  let totalAssigned = Object.values(colorCounts).reduce((sum, count) => sum + count, 0);
-  if (totalAssigned !== count) {
-    const diff = count - totalAssigned;
-    colorCounts['C1'] += diff; // Add difference to most common color
-  }
-  
-  // Create vehicles array
-  colors.forEach(color => {
-    for (let i = 0; i < colorCounts[color]; i++) {
-      vehicles.push({
-        id: `V-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        color,
-        entryTime: Date.now(),
-        currentStage: 'input_buffer'
-      });
+function generateJobsByCount(count: number): Job[] {
+    const jobs: Job[] = [];
+    const colors = Object.keys(COLOR_PERCENTAGES) as Color[];
+
+    // Calculate how many of each color we need
+    const colorCounts: Record<Color, number> = {} as Record<Color, number>;
+    colors.forEach((color) => {
+        colorCounts[color] = Math.round(
+            (COLOR_PERCENTAGES[color] / 100) * count
+        );
+    });
+
+    // Adjust for rounding errors to ensure exact count
+    let totalAssigned = Object.values(colorCounts).reduce(
+        (sum, count) => sum + count,
+        0
+    );
+    if (totalAssigned !== count) {
+        const diff = count - totalAssigned;
+        colorCounts["C1"] += diff;
     }
-  });
-  
-  // Shuffle the array to randomize sequence while maintaining percentages
-  for (let i = vehicles.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [vehicles[i], vehicles[j]] = [vehicles[j], vehicles[i]];
-  }
-  
-  return vehicles;
+
+    // Create jobs array
+    const now = Date.now() / 1000;
+    colors.forEach((color) => {
+        for (let i = 0; i < colorCounts[color]; i++) {
+            jobs.push({
+                id: uuidv4(),
+                color,
+                origin: "O1",
+                arrival_ts: now + i * 0.001,
+                assigned_buffer: null,
+                hold_since: null,
+            });
+        }
+    });
+
+    // Shuffle the array
+    for (let i = jobs.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [jobs[i], jobs[j]] = [jobs[j], jobs[i]];
+    }
+
+    // Alternate origins
+    for (let i = 0; i < jobs.length; i++) {
+        jobs[i].origin = i % 2 === 0 ? "O1" : "O2";
+    }
+
+    return jobs;
 }
 
-const INITIAL_STATE: SimulationState = {
-  inputBuffer: {
-    capacity: 720,
-    vehicles: []
-  },
-  ovens: {
-    O1: {
-      id: 'O1',
-      name: 'Oven 1',
-      isActive: false,
-      currentVehicle: null,
-      processingTime: 5000, // 5 seconds
-      remainingTime: 0
+const INITIAL_STATE: FrontendSimulationState = {
+    jobs: [],
+    curJobIndex: 0,
+    plantState: {
+        buffers: {
+            L1: {
+                id: "L1",
+                capacity: 14,
+                occupancy: 0,
+                input_available: true,
+                output_available: true,
+                queue: [],
+                reserve_headroom: 0,
+            },
+            L2: {
+                id: "L2",
+                capacity: 14,
+                occupancy: 0,
+                input_available: true,
+                output_available: true,
+                queue: [],
+                reserve_headroom: 0,
+            },
+            L3: {
+                id: "L3",
+                capacity: 14,
+                occupancy: 0,
+                input_available: true,
+                output_available: true,
+                queue: [],
+                reserve_headroom: 0,
+            },
+            L4: {
+                id: "L4",
+                capacity: 14,
+                occupancy: 0,
+                input_available: true,
+                output_available: true,
+                queue: [],
+                reserve_headroom: 0,
+            },
+            L5: {
+                id: "L5",
+                capacity: 16,
+                occupancy: 0,
+                input_available: true,
+                output_available: true,
+                queue: [],
+                reserve_headroom: 1,
+            },
+            L6: {
+                id: "L6",
+                capacity: 16,
+                occupancy: 0,
+                input_available: true,
+                output_available: true,
+                queue: [],
+                reserve_headroom: 1,
+            },
+            L7: {
+                id: "L7",
+                capacity: 16,
+                occupancy: 0,
+                input_available: true,
+                output_available: true,
+                queue: [],
+                reserve_headroom: 1,
+            },
+            L8: {
+                id: "L8",
+                capacity: 16,
+                occupancy: 0,
+                input_available: true,
+                output_available: true,
+                queue: [],
+                reserve_headroom: 1,
+            },
+            L9: {
+                id: "L9",
+                capacity: 16,
+                occupancy: 0,
+                input_available: true,
+                output_available: true,
+                queue: [],
+                reserve_headroom: 1,
+            },
+        },
+        oven_states: { O1: true, O2: true }, // O1 is always on
+        main_conveyor_busy: false,
+        main_conveyor_history: [],
     },
-    O2: {
-      id: 'O2',
-      name: 'Oven 2',
-      isActive: false,
-      currentVehicle: null,
-      processingTime: 5000, // 5 seconds
-      remainingTime: 0
-    }
-  },
-  bufferLines: {
-    L1: { id: 'L1', name: 'Line 1', capacity: 14, vehicles: [], isActive: true, isAvailable: true, ovenSource: 'O1' },
-    L2: { id: 'L2', name: 'Line 2', capacity: 14, vehicles: [], isActive: true, isAvailable: true, ovenSource: 'O1' },
-    L3: { id: 'L3', name: 'Line 3', capacity: 14, vehicles: [], isActive: true, isAvailable: true, ovenSource: 'O1' },
-    L4: { id: 'L4', name: 'Line 4', capacity: 14, vehicles: [], isActive: true, isAvailable: true, ovenSource: 'O1' },
-    L5: { id: 'L5', name: 'Line 5', capacity: 16, vehicles: [], isActive: true, isAvailable: true, ovenSource: 'O2' },
-    L6: { id: 'L6', name: 'Line 6', capacity: 16, vehicles: [], isActive: true, isAvailable: true, ovenSource: 'O2' },
-    L7: { id: 'L7', name: 'Line 7', capacity: 16, vehicles: [], isActive: true, isAvailable: true, ovenSource: 'O2' },
-    L8: { id: 'L8', name: 'Line 8', capacity: 16, vehicles: [], isActive: true, isAvailable: true, ovenSource: 'O2' },
-    L9: { id: 'L9', name: 'Line 9', capacity: 16, vehicles: [], isActive: true, isAvailable: true, ovenSource: 'O2' }
-  },
-  mainConveyor: {
-    isActive: false,
-    currentVehicle: null,
-    speed: 1,
-    pickingFromBuffer: null
-  },
-  completedVehicles: [],
-  totalVehiclesProcessed: 0,
-  simulationSpeed: 1,
-  isRunning: false,
-  currentTime: 0,
-  statistics: {
-    throughput: 0,
-    avgWaitTime: 0,
-    bufferUtilization: 0,
-    colorChangeovers: 0,
-    totalProcessingTime: 0
-  }
+    isRunning: false,
+    isSimulating: false,
+    autoMode: false,
+    pollInterval: 1000,
+    statistics: { throughput: 0, changeovers: 0, overflows: 0, cross_sends: 0 },
+    lastUpdate: Date.now(),
 };
 
 export function useControlledSimulation() {
-  const [state, setState] = useState<SimulationState>(INITIAL_STATE);
-  const [generatedVehicleCount, setGeneratedVehicleCount] = useState(0);
-  const [isGenerated, setIsGenerated] = useState(false);
-  const intervalRef = useRef<number | null>(null);
-  const nextOvenRef = useRef<'O1' | 'O2'>('O1'); // Alternate between ovens
+    const [state, setState] = useState<FrontendSimulationState>(INITIAL_STATE);
+    const [generatedJobCount, setGeneratedJobCount] = useState(0);
+    const [isGenerated, setIsGenerated] = useState(false);
+    const [isSimulating, setIsSimulating] = useState(false);
+    const [isDraining, setIsDraining] = useState(false);
 
-  const simulationTick = useCallback(() => {
-    setState(prevState => {
-      const newState = { ...prevState };
-      
-      // Process ovens
-      Object.values(newState.ovens).forEach(oven => {
-        if (oven.isActive && oven.currentVehicle && oven.remainingTime > 0) {
-          oven.remainingTime -= 100 * newState.simulationSpeed;
+    const simulationIntervalRef = useRef<number | null>(null);
+    const stateSyncIntervalRef = useRef<number | null>(null);
+    const currentJobIndexRef = useRef(0);
+
+    // Sync state from backend every second
+    const syncStateFromBackend = useCallback(async () => {
+        try {
+            const response = await getState();
+            setState((prev) => ({
+                ...prev,
+                plantState: {
+                    buffers: response.buffers,
+                    oven_states: {
+                        O1: true, // O1 is always active
+                        O2: response.oven_states?.O2 ?? true,
+                    },
+                    main_conveyor_busy:
+                        response.main_conveyor_busy ||
+                        prev.plantState?.main_conveyor_busy ||
+                        false,
+                    main_conveyor_history: response.main_history || [],
+                },
+            }));
+        } catch (error) {
+            console.error("Failed to sync state:", error);
+        }
+    }, []);
+
+    // Generate jobs on frontend
+    const generateJobs = useCallback((count: number) => {
+        if (count > 720) count = 720;
+        const jobs = generateJobsByCount(count);
+        setState((prev) => ({ ...prev, jobs: jobs, curJobIndex: 0 }));
+        setGeneratedJobCount(count);
+        setIsGenerated(true);
+        currentJobIndexRef.current = 0;
+    }, []);
+
+    // Process next job in the queue
+    const processNextJob = useCallback(async () => {
+        const currentIndex = currentJobIndexRef.current;
+
+        if (currentIndex >= state.jobs.length) {
+            // All jobs processed, stop normal simulation
+            if (simulationIntervalRef.current) {
+                clearInterval(simulationIntervalRef.current);
+                simulationIntervalRef.current = null;
+            }
+            if (stateSyncIntervalRef.current) {
+                clearInterval(stateSyncIntervalRef.current);
+                stateSyncIntervalRef.current = null;
+            }
+
+            // Check if there are jobs in buffers that need to be emptied
+            const currentState = await getState();
+            let totalInBuffers = 0;
+            if (currentState.buffers) {
+                totalInBuffers = Object.values(currentState.buffers).reduce(
+                    (sum: number, buf: any) => sum + (buf?.queue?.length || 0),
+                    0
+                );
+            }
+
+            if (totalInBuffers > 0) {
+                // Automatically trigger drain mode to empty buffers optimally
+                console.log(
+                    `All jobs processed. ${totalInBuffers} jobs remaining in buffers. Starting drain mode...`
+                );
+                setTimeout(() => {
+                    startDrainMode();
+                }, 500);
+            } else {
+                setIsSimulating(false);
+            }
+            return;
         }
 
-        // Move vehicles from ovens to buffer lines
-        if (oven.isActive && oven.currentVehicle && oven.remainingTime <= 0) {
-          const vehicle = oven.currentVehicle;
-          
-          // Find available buffer lines for this oven
-          const availableBuffers = Object.values(newState.bufferLines).filter(buffer => 
-            buffer.ovenSource === oven.id && 
-            buffer.isActive && 
-            buffer.isAvailable && 
-            buffer.vehicles.length < buffer.capacity
-          );
+        const job = state.jobs[currentIndex];
 
-          if (availableBuffers.length > 0) {
-            // Select buffer with least vehicles to balance load
-            const targetBuffer = availableBuffers.reduce((min, buffer) => 
-              buffer.vehicles.length < min.vehicles.length ? buffer : min
+        try {
+            // Step 1: Move job to oven (visualize on frontend)
+            if (state.plantState?.oven_states?.[job.origin] === false) {
+                job.origin = job.origin === "O1" ? "O2" : "O1"; // Switch to the other oven if current is off
+            }
+            setState((prev) => ({
+                ...prev,
+                plantState: prev.plantState
+                    ? {
+                          ...prev.plantState,
+                          oven_states: {
+                              ...(prev.plantState.oven_states || {}),
+                              // [job.origin]: true,
+                          },
+                      }
+                    : prev.plantState,
+            }));
+
+            // Step 2: Call arrival API to assign job to buffer
+            await new Promise((resolve) => setTimeout(resolve, 500)); // Wait 500ms for visualization
+            const arrivalResponse = await addArrival(
+                job.origin as "O1" | "O2",
+                job.color
             );
-            
-            vehicle.currentStage = 'buffer_line';
-            vehicle.bufferLineId = targetBuffer.id;
-            targetBuffer.vehicles.push(vehicle);
-            oven.currentVehicle = null;
-            oven.remainingTime = 0;
-          }
-        }
 
-        // Load new vehicles into ovens from input buffer (alternating)
-        if (oven.isActive && !oven.currentVehicle && newState.inputBuffer.vehicles.length > 0) {
-          if (oven.id === nextOvenRef.current) {
-            const vehicle = newState.inputBuffer.vehicles.shift()!;
-            vehicle.currentStage = oven.id === 'O1' ? 'oven1' : 'oven2';
-            oven.currentVehicle = vehicle;
-            oven.remainingTime = oven.processingTime;
-            
-            // Alternate to next oven
-            nextOvenRef.current = nextOvenRef.current === 'O1' ? 'O2' : 'O1';
-          }
-        }
-      });
-
-      // Process main conveyor
-      if (newState.mainConveyor.isActive) {
-        // If conveyor is empty, select next buffer (FIFO)
-        if (!newState.mainConveyor.currentVehicle && !newState.mainConveyor.pickingFromBuffer) {
-          const availableBuffers = Object.values(newState.bufferLines)
-            .filter(buffer => buffer.isActive && buffer.vehicles.length > 0)
-            .sort((a, b) => {
-              const aOldest = Math.min(...a.vehicles.map(v => v.entryTime));
-              const bOldest = Math.min(...b.vehicles.map(v => v.entryTime));
-              return aOldest - bOldest;
+            // Step 3: Update job with assigned buffer
+            setState((prev) => {
+                const updatedJobs = [...prev.jobs];
+                updatedJobs[currentIndex] = {
+                    ...updatedJobs[currentIndex],
+                    assigned_buffer: arrivalResponse.assigned_buffer,
+                };
+                return {
+                    ...prev,
+                    jobs: updatedJobs,
+                    curJobIndex: currentIndex + 1,
+                    plantState: prev.plantState
+                        ? {
+                              ...prev.plantState,
+                              oven_states: {
+                                  ...(prev.plantState.oven_states || {}),
+                                  [job.origin]: false,
+                              },
+                          }
+                        : prev.plantState,
+                };
             });
-          
-          if (availableBuffers.length > 0) {
-            newState.mainConveyor.pickingFromBuffer = availableBuffers[0].id;
-          }
+
+            currentJobIndexRef.current = currentIndex + 1;
+
+            // Step 4: Sync state to show job in buffer
+            await syncStateFromBackend();
+        } catch (error) {
+            console.error("Failed to process job:", error);
+        }
+    }, [state.jobs, syncStateFromBackend]);
+
+    // Main conveyor picks jobs every second
+    const triggerConveyorPick = useCallback(async () => {
+        try {
+            await triggerPick(); // Let backend controller decide which buffer
+            await syncStateFromBackend();
+        } catch (error) {
+            console.error("Failed to trigger pick:", error);
+        }
+    }, [syncStateFromBackend]);
+
+    // Start simulation
+    const startSimulation = useCallback(async () => {
+        if (!isGenerated || state.jobs.length === 0) {
+            alert("Please generate jobs first!");
+            return;
         }
 
-        // Pick vehicle from selected buffer
-        if (newState.mainConveyor.pickingFromBuffer && !newState.mainConveyor.currentVehicle) {
-          const bufferLine = newState.bufferLines[newState.mainConveyor.pickingFromBuffer];
-          if (bufferLine && bufferLine.vehicles.length > 0) {
-            const vehicle = bufferLine.vehicles.shift()!;
-            vehicle.currentStage = 'main_conveyor';
-            newState.mainConveyor.currentVehicle = vehicle;
-            newState.mainConveyor.pickingFromBuffer = null;
-          }
+        setIsSimulating(true);
+        setIsDraining(false);
+
+        // Reset backend state
+        await reset();
+        await syncStateFromBackend();
+
+        let arrivalTurn = true; // Alternate between arrivals and picks
+
+        // Alternate between job arrivals and conveyor picks
+        simulationIntervalRef.current = setInterval(async () => {
+            if (arrivalTurn) {
+                // Process next job arrival
+                await processNextJob();
+            } else {
+                // Trigger conveyor pick
+                await triggerConveyorPick();
+            }
+            arrivalTurn = !arrivalTurn; // Switch turns
+        }, 1000);
+    }, [
+        isGenerated,
+        state.jobs,
+        syncStateFromBackend,
+        processNextJob,
+        triggerConveyorPick,
+    ]);
+
+    // Stop simulation
+    const stopSimulation = useCallback(async () => {
+        setIsSimulating(false);
+        setIsDraining(false);
+
+        if (simulationIntervalRef.current) {
+            clearInterval(simulationIntervalRef.current);
+            simulationIntervalRef.current = null;
         }
 
-        // Process vehicle on main conveyor
-        if (newState.mainConveyor.currentVehicle) {
-          setTimeout(() => {
-            setState(prevState => {
-              const updatedState = { ...prevState };
-              if (updatedState.mainConveyor.currentVehicle) {
-                const vehicle = updatedState.mainConveyor.currentVehicle;
-                vehicle.currentStage = 'completed';
-                updatedState.completedVehicles.push(vehicle);
-                updatedState.totalVehiclesProcessed++;
-                updatedState.mainConveyor.currentVehicle = null;
-              }
-              return updatedState;
-            });
-          }, 3000 / newState.simulationSpeed);
+        if (stateSyncIntervalRef.current) {
+            clearInterval(stateSyncIntervalRef.current);
+            stateSyncIntervalRef.current = null;
         }
-      }
 
-      // Update statistics
-      newState.currentTime += 100 * newState.simulationSpeed;
-      const totalVehicles = newState.completedVehicles.length;
-      const totalBufferCapacity = Object.values(newState.bufferLines).reduce((sum, buffer) => sum + buffer.capacity, 0);
-      const usedBufferCapacity = Object.values(newState.bufferLines).reduce((sum, buffer) => sum + buffer.vehicles.length, 0);
-      
-      newState.statistics = {
-        throughput: totalVehicles,
-        avgWaitTime: totalVehicles > 0 
-          ? Math.round(newState.completedVehicles.reduce((sum, v) => sum + (Date.now() - v.entryTime), 0) / totalVehicles / 1000)
-          : 0,
-        bufferUtilization: Math.round((usedBufferCapacity / totalBufferCapacity) * 100),
-        colorChangeovers: totalVehicles > 1 ? newState.completedVehicles.reduce((count, vehicle, index) => {
-          if (index > 0 && vehicle.color !== newState.completedVehicles[index - 1].color) {
-            return count + 1;
-          }
-          return count;
-        }, 0) : 0,
-        totalProcessingTime: newState.currentTime
-      };
+        // Exit drain mode if active
+        try {
+            await exitDrainMode();
+        } catch (error) {
+            // Ignore error if not in drain mode
+        }
+    }, []);
 
-      return newState;
-    });
-  }, []);
+    // Reset everything
+    const resetSimulation = useCallback(async () => {
+        stopSimulation();
+        setState(INITIAL_STATE);
+        setGeneratedJobCount(0);
+        setIsGenerated(false);
+        currentJobIndexRef.current = 0;
 
-  // Start/stop simulation
-  useEffect(() => {
-    if (state.isRunning) {
-      intervalRef.current = setInterval(simulationTick, 100);
-    } else {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    }
+        try {
+            await reset();
+        } catch (error) {
+            console.error("Failed to reset backend:", error);
+        }
+    }, [stopSimulation]);
 
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            if (simulationIntervalRef.current) {
+                clearInterval(simulationIntervalRef.current);
+            }
+            if (stateSyncIntervalRef.current) {
+                clearInterval(stateSyncIntervalRef.current);
+            }
+        };
+    }, []);
+
+    const toggleAutoMode = useCallback(() => {
+        setState((prev) => ({ ...prev, autoMode: !prev.autoMode }));
+    }, []);
+
+    const toggleRunning = useCallback(() => {
+        setState((prev) => ({ ...prev, isRunning: !prev.isRunning }));
+    }, []);
+
+    // Enter drain mode (when all jobs processed, empty buffers optimally)
+    const startDrainMode = useCallback(async () => {
+        try {
+            console.log("Entering drain mode...");
+            setIsSimulating(true);
+            setIsDraining(true);
+
+            const drainResult = await enterDrainMode(true); // Use MILP for optimal draining
+            console.log("Drain mode entered:", drainResult);
+
+            // Continue triggering picks to execute the drain plan (only picks, no arrivals)
+            stateSyncIntervalRef.current = window.setInterval(async () => {
+                try {
+                    // Check if drain is complete first
+                    const status = await getDrainStatus();
+                    console.log("Drain status:", status);
+
+                    if (!status.drain_mode || status.plan_len === 0) {
+                        // All buffers emptied
+                        console.log("Drain mode complete!");
+                        setIsSimulating(false);
+                        setIsDraining(false);
+                        if (stateSyncIntervalRef.current) {
+                            clearInterval(stateSyncIntervalRef.current);
+                            stateSyncIntervalRef.current = null;
+                        }
+                        await exitDrainMode();
+                        return;
+                    }
+
+                    // Trigger next pick from drain plan
+                    await triggerConveyorPick();
+                } catch (err) {
+                    console.error("Error in drain loop:", err);
+                }
+            }, 1000);
+        } catch (error) {
+            console.error("Failed to start drain mode:", error);
+            setIsSimulating(false);
+            setIsDraining(false);
+        }
+    }, [triggerConveyorPick]);
+
+    // Stop drain mode
+    const stopDrainMode = useCallback(async () => {
+        try {
+            await exitDrainMode();
+            setIsSimulating(false);
+            setIsDraining(false);
+            if (stateSyncIntervalRef.current) {
+                clearInterval(stateSyncIntervalRef.current);
+                stateSyncIntervalRef.current = null;
+            }
+        } catch (error) {
+            console.error("Failed to stop drain mode:", error);
+        }
+    }, []);
+
+    // Toggle oven on/off
+    const handleToggleOven = useCallback(
+        async (ovenId: "O1" | "O2") => {
+            try {
+                const response = await toggleOven(ovenId);
+                console.log(`Oven ${ovenId} toggled:`, response.message);
+                await syncStateFromBackend();
+            } catch (error) {
+                console.error(`Failed to toggle oven ${ovenId}:`, error);
+            }
+        },
+        [syncStateFromBackend]
+    );
+
+    // Toggle buffer line on/off
+    const handleToggleBufferLine = useCallback(
+        async (bufferId: string) => {
+            try {
+                // Toggle both input and output together for simplicity
+                const currentBuffer = state.plantState?.buffers[bufferId];
+                const newState = !(
+                    currentBuffer?.input_available &&
+                    currentBuffer?.output_available
+                );
+
+                const response = await setBufferState(
+                    bufferId,
+                    newState,
+                    newState
+                );
+                console.log(`Buffer ${bufferId} toggled:`, response);
+                await syncStateFromBackend();
+            } catch (error) {
+                console.error(`Failed to toggle buffer ${bufferId}:`, error);
+            }
+        },
+        [state.plantState?.buffers, syncStateFromBackend]
+    );
+
+    // Toggle main conveyor
+    const handleToggleMainConveyor = useCallback(async () => {
+        try {
+            const response = await toggleMainConveyor();
+            console.log("Main conveyor toggled:", response.message);
+            await syncStateFromBackend();
+        } catch (error) {
+            console.error("Failed to toggle main conveyor:", error);
+        }
+    }, [syncStateFromBackend]);
+
+    return {
+        state,
+        generatedJobCount,
+        isGenerated,
+        isSimulating,
+        isDraining,
+        generateJobs,
+        startSimulation,
+        stopSimulation,
+        resetSimulation,
+        startDrainMode,
+        stopDrainMode,
+        toggleAutoMode,
+        toggleRunning,
+        syncStateFromBackend,
+        handleToggleOven,
+        handleToggleBufferLine,
+        handleToggleMainConveyor,
     };
-  }, [state.isRunning, simulationTick]);
-
-  // Control functions
-  const generateVehicles = useCallback((count: number) => {
-    if (count > 720) count = 720;
-    const vehicles = generateVehiclesByCount(count);
-    setState(prev => ({
-      ...prev,
-      inputBuffer: {
-        ...prev.inputBuffer,
-        vehicles: vehicles
-      }
-    }));
-    setGeneratedVehicleCount(count);
-    setIsGenerated(true);
-  }, []);
-
-  const startSimulation = useCallback(() => {
-    setState(prev => ({ ...prev, isRunning: true }));
-  }, []);
-
-  const stopSimulation = useCallback(() => {
-    setState(prev => ({ ...prev, isRunning: false }));
-  }, []);
-
-  const resetSimulation = useCallback(() => {
-    setState(INITIAL_STATE);
-    setGeneratedVehicleCount(0);
-    setIsGenerated(false);
-    nextOvenRef.current = 'O1';
-  }, []);
-
-  const toggleOven = useCallback((ovenId: 'O1' | 'O2') => {
-    setState(prev => ({
-      ...prev,
-      ovens: {
-        ...prev.ovens,
-        [ovenId]: {
-          ...prev.ovens[ovenId],
-          isActive: !prev.ovens[ovenId].isActive
-        }
-      }
-    }));
-  }, []);
-
-  const toggleBufferLine = useCallback((bufferId: string) => {
-    setState(prev => ({
-      ...prev,
-      bufferLines: {
-        ...prev.bufferLines,
-        [bufferId]: {
-          ...prev.bufferLines[bufferId],
-          isActive: !prev.bufferLines[bufferId].isActive
-        }
-      }
-    }));
-  }, []);
-
-  const toggleMainConveyor = useCallback(() => {
-    setState(prev => ({
-      ...prev,
-      mainConveyor: {
-        ...prev.mainConveyor,
-        isActive: !prev.mainConveyor.isActive
-      }
-    }));
-  }, []);
-
-  const setSimulationSpeed = useCallback((speed: number) => {
-    setState(prev => ({ ...prev, simulationSpeed: speed }));
-  }, []);
-
-  return {
-    state,
-    generatedVehicleCount,
-    isGenerated,
-    generateVehicles,
-    startSimulation,
-    stopSimulation,
-    resetSimulation,
-    toggleOven,
-    toggleBufferLine,
-    toggleMainConveyor,
-    setSimulationSpeed
-  };
 }
