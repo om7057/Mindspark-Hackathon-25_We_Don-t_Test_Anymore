@@ -1,9 +1,9 @@
 import React from 'react';
-import type { Vehicle, Color } from '../types';
+import type { Color, Job } from '../types';
 import { COLOR_CODES } from '../types';
 
 interface VehicleComponentProps {
-  vehicle: Vehicle;
+  vehicle: Job;
   size?: 'sm' | 'md' | 'lg';
   showId?: boolean;
 }
@@ -33,7 +33,7 @@ export const VehicleComponent: React.FC<VehicleComponentProps> = ({
 };
 
 interface VehicleQueueProps {
-  vehicles: Vehicle[];
+  vehicles: Job[];
   title: string;
   capacity?: number;
   isActive?: boolean;

@@ -11,7 +11,6 @@ import {
     exitDrainMode,
     getDrainStatus,
     toggleOven,
-    toggleBuffer,
     setBufferState,
     toggleMainConveyor,
 } from "../services/api";
